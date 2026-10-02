@@ -1,21 +1,23 @@
 # Transparência — Despesas Públicas Federais
 
-Pipeline completo de ingestão, tratamento e análise das **despesas públicas federais brasileiras**, construído do zero com **SQL Server**, e preparado para expansão analítica em **Python**, **DAX** e **Power BI**.
+Pipeline de ingestão e tratamento das **despesas públicas federais brasileiras**, construído do zero com **SQL Server** e preparado para expansão analítica em **Python**, **DAX** e **Power BI**.
 
-Este projeto faz parte do meu portfólio de transição para a área de **Análise de Dados**, com foco em domínio prático de modelagem, ETL, SQL analítico e visualização.
+Este projeto faz parte do meu portfólio de transição para a área de **Análise de Dados**, com foco em modelagem, ETL, SQL analítico e visualização.
+
+**Período coberto:** [mês/ano] a [mês/ano] · **558.998 linhas** na tabela fato.
 
 ---
 
 ## Objetivo
 
-Transformar os arquivos CSV mensais de execução orçamentária federal (padrão do Portal da Transparência) em uma base consultável e confiável, permitindo responder perguntas como:
+Transformar os arquivos CSV mensais de execução orçamentária federal (Portal da Transparência) em uma base consultável e confiável, capaz de responder:
 
 - Quanto cada ministério **empenhou**, **liquidou** e **pagou** no mês?
 - Qual a diferença entre empenho e pagamento (execução orçamentária)?
-- Como a **dívida pública** e a **previdência** impactam o total?
-- Qual o gasto **discricionário** real do governo, excluindo encargos da dívida?
+- Quanto da despesa total vem da **dívida pública** e da **previdência**?
+- Qual o gasto **discricionário** do governo, excluindo dívida e previdência?
 
-O projeto também documenta, passo a passo, **os problemas reais encontrados durante a construção** e as soluções aplicadas — algo essencial em qualquer pipeline de dados do mundo real.
+O projeto também documenta **os problemas reais encontrados durante a construção** e as soluções aplicadas (veja `docs/problemas_e_solucoes.md`).
 
 ---
 
@@ -23,11 +25,10 @@ O projeto também documenta, passo a passo, **os problemas reais encontrados dur
 
 | Área | O que foi aplicado |
 |------|--------------------|
-| **SQL** | Modelagem de staging, ETL, `BULK INSERT` dinâmico, `TRY_CONVERT`, `TRY_CAST`, `sp_rename`, views, cursor, `xp_dirtree` |
+| **SQL** | Staging, ETL, `BULK INSERT` dinâmico com cursor e `xp_dirtree`, `TRY_CONVERT`, `TRY_CAST`, `sp_rename`, views |
 | **Modelagem de dados** | Separação em camadas (staging → fato → views), preparação para star schema |
-| **Qualidade de dados** | Tratamento de encoding, aspas literais, sentinelas (`Sem informação`), linhas vazias |
-| **Boas práticas** | Scripts numerados, idempotência, comentários, documentação de erros |
-| **Próximas etapas** | Python (pandas) para validação, DAX para métricas, Power BI para dashboards |
+| **Qualidade de dados** | Tratamento de encoding, aspas literais, valores sentinela (`Sem informação`), linhas vazias |
+| **Boas práticas** | Scripts numerados e comentados, documentação de erros e soluções |
 
 ---
 
@@ -36,6 +37,7 @@ O projeto também documenta, passo a passo, **os problemas reais encontrados dur
 ```
 transparencia-despesas/
 ├── README.md
+├── LICENSE
 ├── .gitignore
 ├── data/
 │   └── raw/                         # CSVs originais (não versionados)
@@ -43,17 +45,15 @@ transparencia-despesas/
 ├── sql/
 │   ├── 01_criar_banco.sql
 │   ├── 02_criar_staging.sql
-│   ├── 03_carga_cvs_staging.sql
-│   ├── 04_renomear_coluna.sql
+│   ├── 03_carga_csv_staging.sql
+│   ├── 04_renomear_colunas.sql
 │   ├── 05_limpeza_staging.sql
-│   ├── 06_tabela.sql
-│   ├── 07_popular_tabela.sql
+│   ├── 06_criar_fato.sql
+│   ├── 07_popular_fato.sql
 │   ├── 08_criar_views.sql
 │   └── 09_consultas_analiticas.sql
 ├── python/                          # (em construção) validação com pandas
-│   └── .gitkeep
 ├── powerbi/                         # (em construção) dashboards
-│   └── .gitkeep
 └── docs/
     ├── problemas_e_solucoes.md
     └── dicionario_dados.md
@@ -65,8 +65,8 @@ transparencia-despesas/
 
 | Camada | Ferramenta |
 |--------|------------|
-| Banco de dados | **SQL Server 2022** |
-| Linguagem de transformação | **T-SQL** |
+| Banco de dados | **SQL Server 2025** |
+| Transformação | **T-SQL** |
 | Ingestão | **`BULK INSERT`** com loop dinâmico |
 | Análise (em construção) | **Python + pandas** |
 | Visualização (em construção) | **Power BI + DAX** |
@@ -77,9 +77,7 @@ transparencia-despesas/
 
 ### Etapa 1 — Criar o banco
 
-📄 `sql/01_create_database.sql`
-
-Cria o banco `Transparencia`.
+`sql/01_criar_banco.sql`
 
 ```sql
 IF DB_ID('Transparencia') IS NULL
@@ -89,48 +87,47 @@ GO
 
 ### Etapa 2 — Tabela de staging
 
-📄 `sql/02_create_staging.sql`
+`sql/02_criar_staging.sql`
 
-Tabela com **47 colunas `NVARCHAR`**, espelhando exatamente o cabeçalho do CSV original (incluindo acentos e parênteses).
+Tabela com **47 colunas `NVARCHAR`**, espelhando o cabeçalho do CSV original (incluindo acentos e parênteses). Tudo entra como texto; a conversão de tipos acontece na Etapa 7.
 
-> O CSV vem em encoding **Windows-1252 (Latin1)**. Salve os scripts em **UTF-8** para não corromper acentos.
-
+> O Portal da Transparência entrega os arquivos em Windows-1252 (Latin1). Se um dia eles mudarem para UTF-8, ajuste o CODEPAGE para '65001'.
 ### Etapa 3 — Carga dos CSVs
 
- `sql/03_bulk_insert_loop.sql`
+`sql/03_carga_csv_staging.sql`
 
-Loop em todos os `.csv` da pasta configurada, carregando cada um com `BULK INSERT` dinâmico.
+Lista todos os `.csv` da pasta configurada com `xp_dirtree` e carrega cada um com `BULK INSERT` dinâmico, dentro de um cursor.
 
 ```sql
 BULK INSERT dbo.stg_execucao
-FROM 'caminho\arquivo.csv'
+FROM 'C:\caminho\arquivo.csv'
 WITH (
     FIRSTROW        = 2,
     FIELDTERMINATOR = ';',
-    FIELDQUOTE      = '"',
     ROWTERMINATOR   = '0x0a',
     CODEPAGE        = '1252',
     TABLOCK
 );
 ```
 
-> **Aprendizado:** usar `FORMAT='CSV'` junto com `FIELDTERMINATOR=';'` **quebra o parsing** e deixa aspas literais nos valores. Removemos o `FORMAT='CSV'` para que o `FIELDQUOTE` funcione.
+> **Aprendizado:** sem `FORMAT = 'CSV'`, o `BULK INSERT` não reconhece as aspas que envolvem os campos, e elas entram como texto (`"2026/01"`). Optei por essa carga e removi as aspas na Etapa 5.
 
 ### Etapa 4 — Renomear colunas
 
-`sql/04_rename_columns.sql`
+`sql/04_renomear_colunas.sql`
 
-O processo de criação gerou colunas com underscore (`Ano_e_mês_do_lançamento`) em vez de espaço. Este script usa `sp_rename` para normalizar os **47 nomes**.
+A criação da tabela gerou colunas com underscore (`Ano_e_mês_do_lançamento`) em vez de espaço. Este script usa `sp_rename` para normalizar os **47 nomes**. Deve ser executado uma única vez, logo após a Etapa 2.
 
 ### Etapa 5 — Limpeza do staging
 
- `sql/05_clean_staging.sql`
+`sql/05_limpeza_staging.sql`
 
-Remove **aspas literais residuais** (`"2026/01"` → `2026/01`) e **linhas vazias** do fim dos CSVs.
+Remove as **aspas literais** (`"2026/01"` → `2026/01`) e as **linhas vazias** do fim dos CSVs.
+Aprendizado: o BULK INSERT com FIELDQUOTE = '"' deveria remover as aspas, mas neste caso específico não removeu — provavelmente por causa da codificação do CSV. Optei por manter a carga simples e tratar as aspas na Etapa 5, o que se mostrou mais confiável.
 
 ### Etapa 6 — Tabela fato
 
-`sql/06_create_fato.sql`
+`sql/06_criar_fato.sql`
 
 ```sql
 CREATE TABLE dbo.fato_despesa (
@@ -146,34 +143,28 @@ CREATE TABLE dbo.fato_despesa (
 
 ### Etapa 7 — Popular a tabela fato
 
-`sql/07_insert_fato.sql`
+`sql/07_popular_fato.sql`
 
-Conversão robusta com `TRY_CONVERT` e `TRY_CAST`, tratamento de sentinelas (`Sem informação` → `NULL`) e filtro de linhas inválidas.
+Converte datas e valores com `TRY_CONVERT` e `TRY_CAST`, transforma sentinelas (`Sem informação`) em `NULL` e descarta linhas inválidas.
 
-Resultado alcançado:
-
-```
-linhas_na_fato
---------------
-558998
-```
+Resultado: **558.998 linhas** na `fato_despesa`.
 
 ### Etapa 8 — Camada semântica (views)
 
- `sql/08_create_views.sql`
+`sql/08_criar_views.sql`
 
 - **`vw_despesa_mensal`** — agregação por mês, órgão, função e grupo de despesa.
-- **`vw_despesa_categoria`** — separa em **Dívida pública**, **Previdência** e **Discricionárias**.
+- **`vw_despesa_categoria`** — classifica a despesa em **Dívida pública**, **Previdência** e **Discricionárias**.
 
 ### Etapa 9 — Análises
 
-`sql/09_analysis_queries.sql`
+`sql/09_consultas_analiticas.sql`
 
-Consultas analíticas de exemplo, incluindo ranking de órgãos, execução por função e comparação entre empenho e pagamento.
+Ranking de órgãos, execução por função e comparação entre empenho e pagamento.
 
 ---
 
-##  Como rodar
+## Como rodar
 
 1. Clone o repositório:
 
@@ -181,106 +172,93 @@ Consultas analíticas de exemplo, incluindo ranking de órgãos, execução por 
    git clone https://github.com/cainaq/transparencia-despesas.git
    ```
 
-2. Coloque os CSVs em `data/raw/` ou ajuste a pasta no script `03`.
+2. Baixe os CSVs de **Execução da Despesa** no [Portal da Transparência](https://portaldatransparencia.gov.br/download-de-dados/despesas-execucao) e coloque-os numa pasta local (ex.: `C:\dados\`).
+   O `BULK INSERT` exige um **caminho absoluto** acessível pelo serviço do SQL Server. Ajuste a variável `@pasta` no script `03`.
 
-3. Abra o SQL Server Management Studio (SSMS) ou Azure Data Studio e execute os scripts **na ordem**:
+3. No SQL Server Management Studio (SSMS), execute os scripts **na ordem**:
 
    ```
-   sql/01_create_database.sql
-   sql/02_create_staging.sql
-   sql/03_bulk_insert_loop.sql
-   sql/04_rename_columns.sql      ← rodar só uma vez
-   sql/05_clean_staging.sql
-   sql/06_create_fato.sql
-   sql/07_insert_fato.sql
-   sql/08_create_views.sql
-   sql/09_analysis_queries.sql
+   sql/01_criar_banco.sql
+   sql/02_criar_staging.sql
+   sql/04_renomear_colunas.sql      ← uma única vez, logo após a criação da staging
+   sql/03_carga_csv_staging.sql
+   sql/05_limpeza_staging.sql
+   sql/06_criar_fato.sql
+   sql/07_popular_fato.sql
+   sql/08_criar_views.sql
+   sql/09_consultas_analiticas.sql
    ```
 
-4. O script `07` imprime o total de linhas carregadas. O `09` retorna os rankings.
+---
+
+## Resultados
+
+### Top 5 órgãos por valor pago
+
+| Órgão | Empenhado (R$ bi) | Pago (R$ bi) | % pago |
+|-------|------------------:|-------------:|-------:|
+| Ministério da Fazenda | 2.790,44 | 2.580,52 | 92,48 |
+| Ministério da Previdência Social | 960,02 | 854,19 | 88,98 |
+| Ministério da Saúde | 207,84 | 179,48 | 86,36 |
+| Ministério da Educação | 251,60 | 163,76 | 65,09 |
+| Ministério do Desenvolvimento e Assistência | 138,96 | 124,58 | 89,65 |
+
+### Execução por categoria
+
+| Categoria | Empenhado (R$ bi) | Pago (R$ bi) | Participação no pago |
+|-----------|------------------:|-------------:|---------------------:|
+| Dívida pública | 2.755,58 | 2.559,12 | 58,70% |
+| Discricionárias | 1.254,97 | 989,04 | 22,69% |
+| Previdência | 930,11 | 811,65 | 18,62% |
+
+### Execução por função
+
+| Indicador | Função | % pago |
+|-----------|--------|-------:|
+| **Menor execução** | Desporto e lazer | 25,72 |
+| **Maior execução** | Trabalho | 99,24 |
+
+### Principais conclusões
+
+1. A **Dívida pública** concentrou **58,70%** de todos os pagamentos do período — reflexo da rolagem de títulos do Tesouro Nacional, que **não representa gasto novo**.
+2. **Dívida + Previdência** somaram **77,32%** do valor pago. O gasto **discricionário** (políticas públicas) ficou em apenas **22,69%**.
+3. A taxa de pagamento (pago ÷ empenhado) variou de **25,72%** em **Desporto e lazer** a **99,24%** em **Trabalho** — funções com despesa de investimento executam mais devagar; funções com folha de pagamento executam quase integralmente.
+4. O **Ministério da Fazenda** liderou o ranking por órgão (R$ 2,58 tri pagos) exclusivamente por causa da dívida. Excluindo a dívida, o **Ministério da Previdência Social** assume a liderança (R$ 854 bi).
+
+As consultas que geram esses resultados estão em `sql/09_consultas_analiticas.sql`.
+As consultas que geram esses resultados estão em `sql/09_consultas_analiticas.sql`.
 
 ---
 
-##  Análises já disponíveis
+## Próximos passos
 
-### Top 10 órgãos por empenho
-
-```sql
-SELECT TOP 10
-    orgao_superior,
-    SUM(valor_empenhado) AS empenhado,
-    SUM(valor_pago)      AS pago
-FROM dbo.fato_despesa
-GROUP BY orgao_superior
-ORDER BY empenhado DESC;
-```
-
-### Execução por categoria (dívida / previdência / discricionárias)
-
-```sql
-SELECT
-    categoria,
-    SUM(valor_empenhado) AS empenhado,
-    SUM(valor_pago)      AS pago
-FROM dbo.vw_despesa_categoria
-GROUP BY categoria
-ORDER BY empenhado DESC;
-```
-
-### Empenhado vs. pago por função
-
-```sql
-SELECT
-    funcao,
-    SUM(valor_empenhado) AS empenhado,
-    SUM(valor_pago)      AS pago,
-    CAST(100.0 * SUM(valor_pago) / NULLIF(SUM(valor_empenhado),0)
-        AS DECIMAL(5,2)) AS pct_pago
-FROM dbo.fato_despesa
-GROUP BY funcao
-ORDER BY empenhado DESC;
-```
-
----
-
-##  Observações importantes sobre os dados
-
-1. **Encargos especiais do Ministério da Fazenda** representam **rolagem da dívida pública** — não são gasto novo. Sempre trate à parte.
-2. **Previdência Social** tem empenho maior que pagamento no início do mês e menor no fim (restos a pagar).
-3. **Educação e Assistência Social** costumam empenhar o orçamento anual em **janeiro**, pagando ao longo do ano.
-4. Os valores são armazenados em `DECIMAL(18,2)` — suficiente para qualquer valor da dívida pública.
-
----
-
-##  Próximos passos
-
-- [ ] **Python** — validação dos dados com `pandas` (checagens de nulos, somas por grupo, comparação com totais oficiais).
-- [ ] **Modelagem star schema** — `dim_tempo`, `dim_orgao`, `dim_funcao`, `dim_grupo_despesa`.
-- [ ] **Power BI** — dashboards interativos com séries temporais e ranking de ministérios.
-- [ ] **DAX** — medidas de execução orçamentária (% pago, acumulado no ano, variação mês a mês).
-- [ ] **Automação** — SQL Agent Job para ingestão mensal recorrente.
+- [ ] **Power BI + DAX** — dashboard com série mensal, ranking de órgãos e medidas de execução (% pago, acumulado no ano, variação mensal).
+- [ ] **Python** — validação com `pandas` (nulos, somas por grupo, comparação com totais oficiais).
+- [ ] **Star schema** — `dim_tempo`, `dim_orgao`, `dim_funcao`, `dim_grupo_despesa`.
+- [ ] **Automação** — ingestão mensal recorrente.
 - [ ] **Testes de qualidade** — checagens automáticas de contagem e soma.
 
 ---
 
-##  Referências
+## Referências
 
-- [Portal da Transparência — Despesas Públicas](https://portaldatransparencia.gov.br/despesas)
+- [Portal da Transparência — Execução da Despesa](https://portaldatransparencia.gov.br/download-de-dados/despesas-execucao)
 - [Documentação `BULK INSERT` — Microsoft](https://learn.microsoft.com/sql/t-sql/statements/bulk-insert-transact-sql)
 - [Documentação `sp_rename` — Microsoft](https://learn.microsoft.com/sql/relational-databases/system-stored-procedures/sp-rename-transact-sql)
 - [Documentação `TRY_CAST` / `TRY_CONVERT` — Microsoft](https://learn.microsoft.com/sql/t-sql/functions/try-cast-transact-sql)
 
 ---
 
-##  Autor
+## Autor
 
-**Cainã Queiroz Silva.** — em transição para Análise de Dados.
+**Cainã Queiroz Silva** — em transição para Análise de Dados.
 
 - GitHub: [@cainaq](https://github.com/cainaq)
+- LinkedIn: [linkedin.com/in/seu-usuario](https://linkedin.com/in/seu-usuario)
 - Foco atual: SQL, Python, Power BI e DAX.
 
 ---
 
-##  Licença
+## Licença
 
 Este projeto está sob a licença MIT. Consulte o arquivo `LICENSE` para mais detalhes.
