@@ -92,6 +92,7 @@ GO
 Tabela com **47 colunas `NVARCHAR`**, espelhando o cabeçalho do CSV original (incluindo acentos e parênteses). Tudo entra como texto; a conversão de tipos acontece na Etapa 7.
 
 > O Portal da Transparência entrega os arquivos em Windows-1252 (Latin1). Se um dia eles mudarem para UTF-8, ajuste o CODEPAGE para '65001'.
+> 
 ### Etapa 3 — Carga dos CSVs
 
 `sql/03_carga_csv_staging.sql`
@@ -123,7 +124,7 @@ A criação da tabela gerou colunas com underscore (`Ano_e_mês_do_lançamento`)
 `sql/05_limpeza_staging.sql`
 
 Remove as **aspas literais** (`"2026/01"` → `2026/01`) e as **linhas vazias** do fim dos CSVs.
-Aprendizado: o BULK INSERT com FIELDQUOTE = '"' deveria remover as aspas, mas neste caso específico não removeu — provavelmente por causa da codificação do CSV. Optei por manter a carga simples e tratar as aspas na Etapa 5, o que se mostrou mais confiável.
+
 
 ### Etapa 6 — Tabela fato
 
@@ -191,6 +192,14 @@ Ranking de órgãos, execução por função e comparação entre empenho e paga
 
 ---
 
+### Validação dos números
+
+- A classificação inicial usava a função Encargos Especiais como "dívida" e somava junto cerca de *R$ 472 bi* em transferências a estados e municípios. A versão final classifica pelo *grupo de despesa*, separando juros e amortização das transferências.
+- O total pago (*R$ 4,36 tri*) é o mesmo antes e depois da reclassificação: nenhum valor foi perdido ou duplicado.
+- *99,9%* da dívida está lançada no Ministério da Fazenda (o restante, R$ 1,2 bi, no Ministério da Defesa).
+
+Detalhes em docs/problemas_e_solucoes.md.
+
 ## Resultados
 
 ### Top 5 órgãos por valor pago
@@ -220,13 +229,13 @@ Ranking de órgãos, execução por função e comparação entre empenho e paga
 
 ### Principais conclusões
 
-1. A **Dívida pública** concentrou **58,70%** de todos os pagamentos do período — reflexo da rolagem de títulos do Tesouro Nacional, que **não representa gasto novo**.
+1. A **Dívida pública** concentrou **58,70%** de todos os pagamentos do período. Esse valor inclui juros e a amortização e refinamento de títulos; o refinanciamento troca dívida antiga por nova e não é gasto novo.
 2. **Dívida + Previdência** somaram **77,32%** do valor pago. O gasto **discricionário** (políticas públicas) ficou em apenas **22,69%**.
-3. A taxa de pagamento (pago ÷ empenhado) variou de **25,72%** em **Desporto e lazer** a **99,24%** em **Trabalho** — funções com despesa de investimento executam mais devagar; funções com folha de pagamento executam quase integralmente.
-4. O **Ministério da Fazenda** liderou o ranking por órgão (R$ 2,58 tri pagos) exclusivamente por causa da dívida. Excluindo a dívida, o **Ministério da Previdência Social** assume a liderança (R$ 854 bi).
+3. A taxa de pagamento (pago ÷ empenhado) variou de **25,72%** em **Desporto e lazer** a **99,24%** em **Trabalho**. Uma hipótese é que funções dominadas por benefícios e transferências pagam quase tudo o que empenham, enquanto com mais investimento executam mais devagar.
+4. O **Ministério da Fazenda** liderou o ranking por órgão (R$ 2,58 tri pagos), mas cerca de *81%* desse valor é dívida. Sem ela, a Fazenda pagou cerca de R$ 494 bi, abaixo do **Ministério da Previdência Social** (R$ 854 bi), que passa a liderar.
 
 As consultas que geram esses resultados estão em `sql/09_consultas_analiticas.sql`.
-As consultas que geram esses resultados estão em `sql/09_consultas_analiticas.sql`.
+
 
 ---
 
