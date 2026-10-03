@@ -52,8 +52,8 @@ transparencia-despesas/
 │   ├── 07_popular_fato.sql
 │   ├── 08_criar_views.sql
 │   └── 09_consultas_analiticas.sql
-├── python/                          # (em construção) validação com pandas
-├── powerbi/                         # (em construção) dashboards
+├
+├── powerbi/                         
 └── docs/
     ├── problemas_e_solucoes.md
     └── dicionario_dados.md
@@ -68,7 +68,6 @@ transparencia-despesas/
 | Banco de dados | **SQL Server 2025** |
 | Transformação | **T-SQL** |
 | Ingestão | **`BULK INSERT`** com loop dinâmico |
-| Análise (em construção) | **Python + pandas** |
 | Visualização (em construção) | **Power BI + DAX** |
 
 ---
