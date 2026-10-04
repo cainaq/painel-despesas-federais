@@ -53,7 +53,8 @@ transparencia-despesas/
 │   ├── 08_criar_views.sql
 │   └── 09_consultas_analiticas.sql
 ├
-├── powerbi/                         
+├── powerbi/
+          ├──medidas formatadas.pbix                        
 └── docs/
     ├── problemas_e_solucoes.md
     └── dicionario_dados.md
