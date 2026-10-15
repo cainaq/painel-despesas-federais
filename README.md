@@ -4,7 +4,7 @@ Pipeline de ingestão e tratamento das despesas públicas federais brasileiras, 
 
 Este projeto faz parte do meu portfólio de transição para a área de **Análise de Dados**, com foco em modelagem, ETL, SQL analítico e visualização.
 
-**Período coberto:** 01/2026 a 09/2026 · **558.998 linhas** na tabela fato.
+**Período coberto:** 01/2026 a 10/2026 · **558.998 linhas** na tabela fato.
 
 ---
 
