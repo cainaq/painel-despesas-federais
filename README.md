@@ -222,9 +222,9 @@ Painel em Power BI com ranking de órgãos, execução por categoria e taxa de p
 
 | Categoria | Empenhado (R$ bi) | Pago (R$ bi) | Participação no pago |
 |-----------|------------------:|-------------:|---------------------:|
-| Dívida pública | 2.755,58 | 2.559,12 | 58,70% |
-| Discricionárias | 1.254,97 | 989,04 | 22,69% |
-| Previdência | 930,11 | 811,65 | 18,62% |
+| Dívida pública | 2.755,58 | R$ 2,09 tri | 47,88% |
+| Discricionárias | 1.254,97 | R$ 1,46 tri | 33,51% |
+| Previdência | 930,11 | R$ 0,81 tri | 18,62% |
 
 ### Execução por função
 
@@ -235,8 +235,8 @@ Painel em Power BI com ranking de órgãos, execução por categoria e taxa de p
 
 ### Principais conclusões
 
-1. A **Dívida pública** concentrou **58,70%** de todos os pagamentos do período. Esse valor inclui juros e a amortização e refinamento de títulos; o refinanciamento troca dívida antiga por nova e não é gasto novo.
-2. **Dívida + Previdência** somaram **77,32%** do valor pago. O gasto **discricionário** (políticas públicas) ficou em apenas **22,69%**.
+1. A **Dívida pública** concentrou **47,88%** de todos os pagamentos do período. Esse valor inclui juros e a amortização e refinamento de títulos; o refinanciamento troca dívida antiga por nova e não é gasto novo.
+2. **Dívida + Previdência** somaram **66,50%** do valor pago. O gasto **discricionário** (políticas públicas) ficou em apenas **33,51%**.
 3. A taxa de pagamento (pago ÷ empenhado) variou de **25,72%** em **Desporto e lazer** a **99,24%** em **Trabalho**. Uma hipótese é que funções dominadas por benefícios e transferências pagam quase tudo o que empenham, enquanto com mais investimento executam mais devagar.
 4. O **Ministério da Fazenda** liderou o ranking por órgão (R$ 2,58 tri pagos), mas cerca de *81%* desse valor é dívida. Sem ela, a Fazenda pagou cerca de R$ 494 bi, abaixo do **Ministério da Previdência Social** (R$ 854 bi), que passa a liderar.
 
