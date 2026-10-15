@@ -1,6 +1,6 @@
 # Transparência — Despesas Públicas Federais
 
-Pipeline de ingestão e tratamento das **despesas públicas federais brasileiras**, construído do zero com **SQL Server** e preparado para expansão analítica em **Python**, **DAX** e **Power BI**.
+Pipeline de ingestão e tratamento das despesas públicas federais brasileiras, construído do zero com SQL Server, com dashboard em Power BI e DAX. Preparado para expansão analítica em Python.
 
 Este projeto faz parte do meu portfólio de transição para a área de **Análise de Dados**, com foco em modelagem, ETL, SQL analítico e visualização.
 
@@ -69,7 +69,7 @@ transparencia-despesas/
 | Banco de dados | **SQL Server 2025** |
 | Transformação | **T-SQL** |
 | Ingestão | **`BULK INSERT`** com loop dinâmico |
-| Visualização (em construção) | **Power BI + DAX** |
+| Visualização  | **Power BI + DAX** |
 
 ---
 
@@ -200,6 +200,12 @@ Ranking de órgãos, execução por função e comparação entre empenho e paga
 
 Detalhes em docs/problemas_e_solucoes.md.
 
+## Dashboard
+
+![Dashboard de despesas federais](docs/img/dashboard.png)
+
+Painel em Power BI com ranking de órgãos, execução por categoria e taxa de pagamento por função. Arquivo: `powerbi/medidas formatadas.pbix`.
+
 ## Resultados
 
 ### Top 5 órgãos por valor pago
@@ -241,7 +247,7 @@ As consultas que geram esses resultados estão em `sql/09_consultas_analiticas.s
 
 ## Próximos passos
 
-- [ ] **Power BI + DAX** — dashboard com série mensal, ranking de órgãos e medidas de execução (% pago, acumulado no ano, variação mensal).
+
 - [ ] **Python** — validação com `pandas` (nulos, somas por grupo, comparação com totais oficiais).
 - [ ] **Star schema** — `dim_tempo`, `dim_orgao`, `dim_funcao`, `dim_grupo_despesa`.
 - [ ] **Automação** — ingestão mensal recorrente.
@@ -263,7 +269,7 @@ As consultas que geram esses resultados estão em `sql/09_consultas_analiticas.s
 **Cainã Queiroz Silva** — em transição para Análise de Dados.
 
 - GitHub: [@cainaq](https://github.com/cainaq)
-- LinkedIn: [linkedin.com/in/seu-usuario](https://linkedin.com/in/seu-usuario)
+- LinkedIn: www.linkedin.com/in/cainaqueiroz
 - Foco atual: SQL, Python, Power BI e DAX.
 
 ---
